@@ -2,28 +2,26 @@ import express from "express";
 
 const app = express();
 
-// ✅ Safe JSON parser
-app.use((req, res, next) => {
-  if (req.headers['content-type'] === 'application/json') {
-    express.json()(req, res, next);
-  } else {
-    next();
-  }
-});
+// ✅ parse JSON safely
+app.use(express.json());
 
-// ✅ ✅ CRITICAL: Handle GET (Pega uses this)
+// ✅ ✅ GET /mcp (Pega test)
 app.get("/mcp", (req, res) => {
-  res.status(200).send("OK");
+  return res.status(200).json({
+    status: "ok"
+  });
 });
 
-// ✅ Handle POST
+// ✅ POST /mcp
 app.post("/mcp", async (req, res) => {
   try {
     const body = req.body || {};
 
-    // ✅ Connectivity test (empty body)
+    // ✅ Connectivity test (empty call)
     if (!body || Object.keys(body).length === 0) {
-      return res.status(200).send("OK");
+      return res.status(200).json({
+        status: "ok"
+      });
     }
 
     const method = body.method;
@@ -110,11 +108,14 @@ app.post("/mcp", async (req, res) => {
     });
 
   } catch (err) {
-    return res.status(200).send("OK");
+    return res.status(200).json({
+      status: "ok"
+    });
   }
 });
 
-// ✅ expose to network
+// ✅ expose publicly
 app.listen(4000, "0.0.0.0", () => {
   console.log("✅ MCP running on port 4000");
 });
+``
