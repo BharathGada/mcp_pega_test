@@ -2,7 +2,7 @@ import express from "express";
 
 const app = express();
 
-// ✅ IMPORTANT: don't force JSON parsing for all requests
+// ✅ Safe JSON parser
 app.use((req, res, next) => {
   if (req.headers['content-type'] === 'application/json') {
     express.json()(req, res, next);
@@ -11,9 +11,9 @@ app.use((req, res, next) => {
   }
 });
 
-// ✅ Handle GET (Pega test)
+// ✅ ✅ CRITICAL: Handle GET (Pega uses this)
 app.get("/mcp", (req, res) => {
-  return res.status(200).send("OK");
+  res.status(200).send("OK");
 });
 
 // ✅ Handle POST
@@ -21,9 +21,9 @@ app.post("/mcp", async (req, res) => {
   try {
     const body = req.body || {};
 
-    // ✅ STEP 1: Connectivity test (empty request)
+    // ✅ Connectivity test (empty body)
     if (!body || Object.keys(body).length === 0) {
-      return res.status(200).send("OK"); // ✅ VERY IMPORTANT
+      return res.status(200).send("OK");
     }
 
     const method = body.method;
@@ -110,12 +110,11 @@ app.post("/mcp", async (req, res) => {
     });
 
   } catch (err) {
-    return res.status(200).send("OK"); // ✅ prevent failure
+    return res.status(200).send("OK");
   }
 });
 
 // ✅ expose to network
 app.listen(4000, "0.0.0.0", () => {
-  console.log("✅ MCP running on http://0.0.0.0:4000/mcp");
+  console.log("✅ MCP running on port 4000");
 });
-``
