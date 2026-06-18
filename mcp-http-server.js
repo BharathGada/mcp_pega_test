@@ -118,4 +118,3 @@ app.post("/mcp", async (req, res) => {
 app.listen(4000, "0.0.0.0", () => {
   console.log("✅ MCP running on port 4000");
 });
-``
