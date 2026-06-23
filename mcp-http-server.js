@@ -5,28 +5,70 @@ const app = express();
 // ✅ parse JSON safely
 app.use(express.json());
 
-// ✅ ✅ GET /mcp (Pega test)
+// ✅ In-memory data
+const cases = [
+  { case_id: "CASE-101", status: "OPEN" },
+  { case_id: "CASE-102", status: "CLOSED" },
+  { case_id: "CASE-103", status: "OPEN" }
+];
+
+// ✅ ✅ GET /mcp → return tools (IMPORTANT FIX)
 app.get("/mcp", (req, res) => {
-  return res.status(200).json({
-    status: "ok"
+  return res.json({
+    jsonrpc: "2.0",
+    id: 1,
+    result: {
+      tools: [
+        {
+          name: "get_cases",
+          description: "Fetch cases",
+          inputSchema: {
+            type: "object",
+            properties: {
+              status: { type: "string" }
+            }
+          }
+        },
+        {
+          name: "get_summary",
+          description: "Get case summary",
+          inputSchema: {
+            type: "object",
+            properties: {}
+          }
+        }
+      ]
+    }
   });
 });
 
-// ✅ POST /mcp
+// ✅ ✅ POST /mcp
 app.post("/mcp", async (req, res) => {
   try {
     const body = req.body || {};
-
-    // ✅ Connectivity test (empty call)
-    if (!body || Object.keys(body).length === 0) {
-      return res.status(200).json({
-        status: "ok"
-      });
-    }
-
     const method = body.method;
     const params = body.params || {};
     const id = body.id || 1;
+
+    // ✅ If no method → return tools (IMPORTANT)
+    if (!method) {
+      return res.json({
+        jsonrpc: "2.0",
+        id: id,
+        result: {
+          tools: [
+            {
+              name: "get_cases",
+              description: "Fetch cases"
+            },
+            {
+              name: "get_summary",
+              description: "Get summary"
+            }
+          ]
+        }
+      });
+    }
 
     // ✅ tools/list
     if (method === "tools/list") {
@@ -62,29 +104,21 @@ app.post("/mcp", async (req, res) => {
     if (method === "tools/call") {
       const { name, arguments: args } = params;
 
-      let response;
+      let result;
 
       if (name === "get_cases") {
-        response = await fetch("http://localhost:3000/get-cases", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(args || {})
-        });
+        result = cases.filter(c =>
+          !args?.status || c.status === args.status.toUpperCase()
+        );
       }
 
       if (name === "get_summary") {
-        response = await fetch("http://localhost:3000/summary");
-      }
-
-      if (!response) {
-        return res.json({
-          jsonrpc: "2.0",
-          id: id,
-          result: {}
+        const summary = {};
+        cases.forEach(c => {
+          summary[c.status] = (summary[c.status] || 0) + 1;
         });
+        result = summary;
       }
-
-      const data = await response.json();
 
       return res.json({
         jsonrpc: "2.0",
@@ -93,7 +127,7 @@ app.post("/mcp", async (req, res) => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(data)
+              text: JSON.stringify(result)
             }
           ]
         }
@@ -108,13 +142,11 @@ app.post("/mcp", async (req, res) => {
     });
 
   } catch (err) {
-    return res.status(200).json({
-      status: "ok"
-    });
+    return res.json({ status: "ok" });
   }
 });
 
-// ✅ expose publicly
+// ✅ start server
 app.listen(4000, "0.0.0.0", () => {
   console.log("✅ MCP running on port 4000");
 });
